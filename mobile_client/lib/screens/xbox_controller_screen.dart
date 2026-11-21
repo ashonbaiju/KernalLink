@@ -83,6 +83,8 @@ class _XboxControllerScreenState extends State<XboxControllerScreen> {
           if (id == 'RT') _rt = 1.0;
         }
         _setButton(id, true);
+        if (id == 'THUMBL') _setButton('LS', true);
+        if (id == 'THUMBR') _setButton('RS', true);
       },
       onPointerUp: (_) {
         if (isTrigger) {
@@ -90,6 +92,8 @@ class _XboxControllerScreenState extends State<XboxControllerScreen> {
           if (id == 'RT') _rt = 0.0;
         }
         _setButton(id, false);
+        if (id == 'THUMBL') _setButton('LS', false);
+        if (id == 'THUMBR') _setButton('RS', false);
       },
       onPointerCancel: (_) {
         if (isTrigger) {
@@ -97,6 +101,8 @@ class _XboxControllerScreenState extends State<XboxControllerScreen> {
           if (id == 'RT') _rt = 0.0;
         }
         _setButton(id, false);
+        if (id == 'THUMBL') _setButton('LS', false);
+        if (id == 'THUMBR') _setButton('RS', false);
       },
       child: Container(
         width: size,

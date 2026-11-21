@@ -533,10 +533,20 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
   // Thumb Stick Click (L3 / R3)
   Widget _buildThumbClickBtn(String id, String label, {double size = 46}) {
     final isDown = _pressedButtons.contains(id);
+    final String? alias = id == 'THUMBL' ? 'LS' : (id == 'THUMBR' ? 'RS' : null);
     return Listener(
-      onPointerDown: (_) => _setButton(id, true),
-      onPointerUp: (_) => _setButton(id, false),
-      onPointerCancel: (_) => _setButton(id, false),
+      onPointerDown: (_) {
+        _setButton(id, true);
+        if (alias != null) _setButton(alias, true);
+      },
+      onPointerUp: (_) {
+        _setButton(id, false);
+        if (alias != null) _setButton(alias, false);
+      },
+      onPointerCancel: (_) {
+        _setButton(id, false);
+        if (alias != null) _setButton(alias, false);
+      },
       child: Container(
         width: size,
         height: size,

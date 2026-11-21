@@ -35,30 +35,25 @@ except ImportError:
 PORT = 8889
 AUDIO_PORT = 8891
 
-# Map string button names to ViGEm button flags
-BUTTON_MAP = {
-    "A": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_A,
-    "B": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_B,
-    "X": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_X,
-    "Y": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_Y,
-    "LB": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER,
-    "RB": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER,
-    "THUMBL": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB,
-    "LS": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB,
-    "L3": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB,
-    "THUMBR": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB,
-    "RS": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB,
-    "R3": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB,
-    "START": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_START,
-    "BACK": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_BACK,
-    "SELECT": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_BACK,
-    "UP": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP,
-    "DOWN": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN,
-    "LEFT": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT,
-    "RIGHT": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT,
-    "GUIDE": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_GUIDE,
-    "HOME": vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_GUIDE,
+# Map distinct ViGEm button flags to all recognized alias names
+BUTTON_FLAG_TO_NAMES = {
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_A: {"A"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_B: {"B"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_X: {"X"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_Y: {"Y"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_SHOULDER: {"LB", "L1"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_SHOULDER: {"RB", "R1"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_LEFT_THUMB: {"THUMBL", "LS", "L3"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_RIGHT_THUMB: {"THUMBR", "RS", "R3"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_START: {"START", "MENU"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_BACK: {"BACK", "SELECT", "VIEW"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_UP: {"UP"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_DOWN: {"DOWN"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_LEFT: {"LEFT"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_DPAD_RIGHT: {"RIGHT"},
+    vg.vcom.XUSB_BUTTON.XUSB_GAMEPAD_GUIDE: {"GUIDE", "HOME", "XBOX"},
 }
+BUTTON_MAP = {name: flag for flag, names in BUTTON_FLAG_TO_NAMES.items() for name in names}
 
 
 class TouchServer:
@@ -200,10 +195,10 @@ class TouchServer:
         pad.left_trigger(value=lt)
         pad.right_trigger(value=rt)
 
-        # Buttons bitmask
+        # Buttons bitmask: press button if any alias name is sent
         pressed_buttons = set(data.get("buttons", []))
-        for name, flag in BUTTON_MAP.items():
-            if name in pressed_buttons:
+        for flag, aliases in BUTTON_FLAG_TO_NAMES.items():
+            if not pressed_buttons.isdisjoint(aliases):
                 pad.press_button(button=flag)
             else:
                 pad.release_button(button=flag)
