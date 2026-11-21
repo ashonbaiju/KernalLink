@@ -40,6 +40,7 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
   // 1 = Arrow Buttons Preset (Discrete Left < and Right > Buttons)
   // 2 = Steering Wheel Preset (Multi-Turn Wheel with 720deg rotation)
   int _presetMode = 0;
+  bool _isMonochromeTheme = false;
   bool _arrowLeftPressed = false;
   bool _arrowRightPressed = false;
 
@@ -48,6 +49,8 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
   static const double _maxWheelDeg = 720.0; // 2 full rotations left (-720°), 2 full rotations right (+720°)
   bool _isWheelTouched = false;
   double _lastWheelTouchAngle = 0.0;
+  bool _wheelKeyLeftDown = false;
+  bool _wheelKeyRightDown = false;
   late AnimationController _wheelAnimCtrl;
   late Animation<double> _wheelAnim;
 
@@ -99,7 +102,11 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       final p = prefs.getInt('console_preset_mode_v1') ?? 0;
-      setState(() => _presetMode = p.clamp(0, 2));
+      final m = prefs.getBool('console_mono_theme_v1') ?? false;
+      setState(() {
+        _presetMode = p.clamp(0, 2);
+        _isMonochromeTheme = m;
+      });
     } catch (_) {}
   }
 
@@ -107,6 +114,7 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('console_preset_mode_v1', _presetMode);
+      await prefs.setBool('console_mono_theme_v1', _isMonochromeTheme);
     } catch (_) {}
   }
 
@@ -485,6 +493,7 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
     required double size,
     Color color = Colors.white,
   }) {
+    final effectiveColor = _isMonochromeTheme ? Colors.white : color;
     final isDown = _pressedButtons.contains(id);
     return Listener(
       onPointerDown: (_) => _setButton(id, true),
@@ -495,14 +504,14 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: isDown ? color : const Color(0xFF14141E),
+          color: isDown ? effectiveColor : const Color(0xFF14141E),
           border: Border.all(
-            color: isDown ? color : color.withAlpha(160),
+            color: isDown ? effectiveColor : effectiveColor.withAlpha(160),
             width: 2.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: isDown ? color.withAlpha(180) : color.withAlpha(50),
+              color: isDown ? effectiveColor.withAlpha(180) : effectiveColor.withAlpha(50),
               blurRadius: isDown ? 12 : 5,
               offset: isDown ? Offset.zero : const Offset(0, 2),
             ),
@@ -512,7 +521,7 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
         child: Text(
           label,
           style: TextStyle(
-            color: isDown ? Colors.black : color,
+            color: isDown ? Colors.black : effectiveColor,
             fontWeight: FontWeight.w900,
             fontSize: size * 0.44,
           ),
@@ -683,77 +692,88 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
   }
 
   // Multi-Turn Steering Wheel Widget (Preset 2: Multi-turn 720deg Lock-to-Lock)
-  Widget _buildSteeringWheelWidget({double size = 148}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Listener(
-          behavior: HitTestBehavior.opaque,
-          onPointerDown: (e) {
-            _wheelAnimCtrl.stop();
-            _isWheelTouched = true;
-            final center = Offset(size / 2, size / 2);
-            final touch = e.localPosition - center;
-            _lastWheelTouchAngle = atan2(touch.dy, touch.dx);
-            HapticFeedback.selectionClick();
-          },
-          onPointerMove: (e) {
-            if (!_isWheelTouched) return;
-            final center = Offset(size / 2, size / 2);
-            final touch = e.localPosition - center;
-            final currentTouchAngle = atan2(touch.dy, touch.dx);
+  Widget _buildSteeringWheelWidget({double size = 154}) {
+    return Listener(
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (e) {
+        _wheelAnimCtrl.stop();
+        _isWheelTouched = true;
+        final center = Offset(size / 2, size / 2);
+        final touch = e.localPosition - center;
+        _lastWheelTouchAngle = atan2(touch.dy, touch.dx);
+        HapticFeedback.selectionClick();
+      },
+      onPointerMove: (e) {
+        if (!_isWheelTouched) return;
+        final center = Offset(size / 2, size / 2);
+        final touch = e.localPosition - center;
+        final currentTouchAngle = atan2(touch.dy, touch.dx);
 
-            double delta = currentTouchAngle - _lastWheelTouchAngle;
-            if (delta > pi) delta -= 2 * pi;
-            if (delta < -pi) delta += 2 * pi;
+        double delta = currentTouchAngle - _lastWheelTouchAngle;
+        if (delta > pi) delta -= 2 * pi;
+        if (delta < -pi) delta += 2 * pi;
 
-            final degDelta = delta * (180.0 / pi);
-            setState(() {
-              _wheelAngleDeg = (_wheelAngleDeg + degDelta).clamp(-_maxWheelDeg, _maxWheelDeg);
-              _lastWheelTouchAngle = currentTouchAngle;
-              _lx = (_wheelAngleDeg / _maxWheelDeg).clamp(-1.0, 1.0);
-            });
-            _sendState();
-          },
-          onPointerUp: (_) => _releaseWheel(),
-          onPointerCancel: (_) => _releaseWheel(),
-          child: SizedBox(
+        final degDelta = delta * (180.0 / pi);
+        setState(() {
+          _wheelAngleDeg = (_wheelAngleDeg + degDelta).clamp(-_maxWheelDeg, _maxWheelDeg);
+          _lastWheelTouchAngle = currentTouchAngle;
+          _lx = (_wheelAngleDeg / _maxWheelDeg).clamp(-1.0, 1.0);
+        });
+        _updateWheelKeyboard(_lx);
+        _sendState();
+      },
+      onPointerUp: (_) => _releaseWheel(),
+      onPointerCancel: (_) => _releaseWheel(),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Transform.rotate(
+          angle: _wheelAngleDeg * (pi / 180.0),
+          child: Image.asset(
+            'assets/steering_wheel.png',
             width: size,
             height: size,
-            child: Transform.rotate(
-              angle: _wheelAngleDeg * (pi / 180.0),
-              child: CustomPaint(
-                size: Size(size, size),
-                painter: const _RealisticCarSteeringWheelPainter(),
-              ),
+            fit: BoxFit.contain,
+            filterQuality: FilterQuality.high,
+            errorBuilder: (context, error, stackTrace) => CustomPaint(
+              size: Size(size, size),
+              painter: const _RealisticCarSteeringWheelPainter(),
             ),
           ),
         ),
-        const SizedBox(height: 5),
-        // Monochromatic Angle HUD Readout
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: const Color(0xFF14141E),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: const Color(0xFF38384E)),
-          ),
-          child: Text(
-            '${_wheelAngleDeg > 0 ? '+' : ''}${_wheelAngleDeg.toInt()}°',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 9.5,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ),
-      ],
+      ),
     );
+  }
+
+  void _updateWheelKeyboard(double lx) {
+    if (lx < -0.25) {
+      if (!_wheelKeyLeftDown) {
+        _wheelKeyLeftDown = true;
+        _conn.sendKey('left', action: 'down');
+      }
+    } else {
+      if (_wheelKeyLeftDown) {
+        _wheelKeyLeftDown = false;
+        _conn.sendKey('left', action: 'up');
+      }
+    }
+
+    if (lx > 0.25) {
+      if (!_wheelKeyRightDown) {
+        _wheelKeyRightDown = true;
+        _conn.sendKey('right', action: 'down');
+      }
+    } else {
+      if (_wheelKeyRightDown) {
+        _wheelKeyRightDown = false;
+        _conn.sendKey('right', action: 'up');
+      }
+    }
   }
 
   void _releaseWheel() {
     _isWheelTouched = false;
+    _updateWheelKeyboard(0.0);
     _wheelAnim = Tween<double>(begin: _wheelAngleDeg, end: 0.0).animate(
       CurvedAnimation(parent: _wheelAnimCtrl, curve: Curves.easeOutCubic),
     );
@@ -811,7 +831,7 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
     final selectedLayout = _selectedElementId != null ? _layouts[_selectedElementId] : null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF000000),
+      backgroundColor: const Color(0xFF0B0B12),
       body: LayoutBuilder(
         builder: (context, constraints) {
           final double screenW = constraints.maxWidth;
@@ -820,9 +840,9 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
           return Stack(
             fit: StackFit.expand,
             children: [
-              // Pure AMOLED Black Background
+              // Pure AMOLED Deep Dark Background
               Container(
-                color: const Color(0xFF000000),
+                color: const Color(0xFF0B0B12),
               ),
 
               // ==================== LEFT CONTROLS ====================
@@ -876,11 +896,11 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
                 _buildElement(
                   id: 'wheel',
                   name: 'Steering Wheel',
-                  baseWidth: 148,
-                  baseHeight: 178,
+                  baseWidth: 154,
+                  baseHeight: 154,
                   screenWidth: screenW,
                   screenHeight: screenH,
-                  child: _buildSteeringWheelWidget(size: 148),
+                  child: _buildSteeringWheelWidget(size: 154),
                 ),
 
               // 4. Monochromatic Faceted D-Pad
@@ -1231,6 +1251,37 @@ class _GameConsoleScreenState extends State<GameConsoleScreen>
                                       : (_presetMode == 1 ? 'EDIT: ARROWS' : 'EDIT: WHEEL'),
                                   style: const TextStyle(
                                     color: Colors.white,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+
+                            // Color Theme Toggle (Xbox Accents vs Monochrome)
+                            InkWell(
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                setState(() {
+                                  _isMonochromeTheme = !_isMonochromeTheme;
+                                });
+                                _savePresetMode();
+                              },
+                              borderRadius: BorderRadius.circular(6),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1E2C),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: _isMonochromeTheme ? const Color(0xFF71717A) : const Color(0xFFF59E0B),
+                                  ),
+                                ),
+                                child: Text(
+                                  _isMonochromeTheme ? 'THEME: MONO' : 'THEME: ACCENTS',
+                                  style: TextStyle(
+                                    color: _isMonochromeTheme ? Colors.white : const Color(0xFFF59E0B),
                                     fontSize: 9.5,
                                     fontWeight: FontWeight.bold,
                                   ),

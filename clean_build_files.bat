@@ -27,20 +27,20 @@ echo.
 echo [*] Cleaning server intermediate build folders...
 if exist "server\build" (
     rmdir /s /q "server\build"
-    echo    -> Removed server\build\
+    echo    - Removed server\build\
 )
 if exist "server\dist" (
     rmdir /s /q "server\dist"
-    echo    -> Removed server\dist\
+    echo    - Removed server\dist\
 )
 if exist "server\dist_new" (
     rmdir /s /q "server\dist_new"
-    echo    -> Removed server\dist_new\
+    echo    - Removed server\dist_new\
 )
 for /d /r "server" %%d in (__pycache__) do (
     if exist "%%d" (
         rmdir /s /q "%%d" >nul 2>&1
-        echo    -> Removed %%d
+        echo    - Removed %%d
     )
 )
 
@@ -48,11 +48,11 @@ echo.
 echo [*] Cleaning Flutter mobile client intermediate build folders...
 if exist "mobile_client\build" (
     rmdir /s /q "mobile_client\build"
-    echo    -> Removed mobile_client\build\
+    echo    - Removed mobile_client\build\
 )
 if exist "mobile_client\.dart_tool" (
     rmdir /s /q "mobile_client\.dart_tool"
-    echo    -> Removed mobile_client\.dart_tool\
+    echo    - Removed mobile_client\.dart_tool\
 )
 
 echo.
