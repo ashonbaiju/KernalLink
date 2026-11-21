@@ -1,0 +1,29 @@
+# Python & PyInstaller Build Artifacts
+server/build/
+server/dist/
+server/dist_new/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.spec.bak
+
+# Flutter / Dart Build Artifacts
+mobile_client/build/
+mobile_client/.dart_tool/
+mobile_client/.flutter-plugins
+mobile_client/.flutter-plugins-dependencies
+mobile_client/.packages
+mobile_client/.pub-cache/
+mobile_client/.pub/
+mobile_client/android/.gradle/
+mobile_client/android/local.properties
+
+# IDE & OS Files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+Thumbs.db
+.DS_Store
+*.log

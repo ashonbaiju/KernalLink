@@ -1,0 +1,27 @@
+# KernalLink PC Server Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core WebSocket & Network Server
+websockets>=12.0
+
+# Hardware Screen Streaming & TurboJPEG Compression
+simplejpeg>=1.6.5
+opencv-python>=4.8.0
+numpy>=1.26.0
+
+# Windows WASAPI Loopback Audio Capture & Streaming
+pyaudiowpatch>=0.2.12.5
+
+# Windows COM Interface & System Audio Controls
+comtypes>=1.2.0
+
+# System Tray Icon & GUI Notifications
+pystray>=0.19.5
+pillow>=10.0.0
+
+# Modern Dark Themed PC Control Panel GUI
+customtkinter>=5.2.0
+darkdetect>=0.8.0
+
+# Standalone Executable Packaging
+pyinstaller>=6.0.0
